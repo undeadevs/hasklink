@@ -36,6 +36,7 @@ executable hasklink-exe
       aeson
     , base >=4.7 && <5
     , scotty
+    , text
   default-language: Haskell2010
 
 test-suite hasklink-test
@@ -51,6 +52,5 @@ test-suite hasklink-test
   build-depends:
       aeson
     , base >=4.7 && <5
-    , hasklink
     , scotty
   default-language: Haskell2010

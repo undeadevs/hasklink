@@ -45,6 +45,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - scotty
+    - text
     - aeson
 
 tests:
@@ -55,5 +56,3 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    dependencies:
-    - hasklink
