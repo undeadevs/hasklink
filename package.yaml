@@ -49,6 +49,7 @@ executables:
     - aeson
     - dotenv
     - mysql-simple
+    - time
 
 tests:
   hasklink-test:

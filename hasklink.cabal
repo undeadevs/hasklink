@@ -38,9 +38,11 @@ executable hasklink-exe
       aeson
     , base >=4.7 && <5
     , dotenv
+    , http-types
     , mysql-simple
     , scotty
     , text
+    , time
   default-language: Haskell2010
 
 test-suite hasklink-test
