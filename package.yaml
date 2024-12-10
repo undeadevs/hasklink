@@ -47,6 +47,8 @@ executables:
     - scotty
     - text
     - aeson
+    - dotenv
+    - mysql-simple
 
 tests:
   hasklink-test:
