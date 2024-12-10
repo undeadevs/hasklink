@@ -18,19 +18,20 @@ import qualified Data.Aeson as Ae (
   Options (fieldLabelModifier)
   )
 import Data.Aeson ((.=))
-import Crypto.Argon2 ( defaultHashOptions, hashEncoded, verifyEncoded, Argon2Status (Argon2Ok, Argon2VerifyMismatch))
+-- import Crypto.Argon2 ( defaultHashOptions, hashEncoded, verifyEncoded, Argon2Status (Argon2Ok, Argon2VerifyMismatch))
+import Crypto.Argon2 ( defaultHashOptions, hashEncoded)
 import qualified Data.ByteString.Char8 as BS (pack)
-import qualified Data.Text.Short as ST (pack, unpack)
-import qualified Data.Text as T (pack)
+-- import qualified Data.Text.Short as ST (pack, unpack)
+import qualified Data.Text.Short as ST (unpack)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryResults (QueryResults(..), convertError)
 import Main.Connect
 import System.Environment (getEnv)
-import Jose.Jwt (Jwt(Jwt), encode, KeyId (KeyId), JwtEncoding (JwsEncoding), Payload (Claims))
-import Jose.Jwk (generateSymmetricKey, KeyUse (Sig))
-import Jose.Jwa (Alg (Signed), JwsAlg (HS256))
 import Web.Scotty.Cookie (setCookie, defaultSetCookie, SetCookie (setCookieValue, setCookieName, setCookiePath))
+-- import Main.Utils.Jwk (jwk)
+-- import Jose.Jwt (Jwt(Jwt), encode, JwtEncoding (JwsEncoding), Payload (Claims))
+-- import Jose.Jwa (JwsAlg(HS256))
 
 data User = User {u_id :: Maybe Int, username :: String, password :: String} deriving (Eq, Show, Generic)
 
@@ -70,16 +71,17 @@ login = post "/auth/login" $ do
   then json $ Ae.object ["error" .= ("Invalid credentials" :: String)] 
   else do
     let user = head users
-    case verifyEncoded (ST.pack $ password user) (BS.pack $ password reqBody) of
-      Argon2Ok -> do
-        jwtSecret <- liftIO $ getEnv "JWT_SECRET"
-        jwk <- liftIO $ generateSymmetricKey 2048 (KeyId $ T.pack jwtSecret ) Sig (Just $ Signed HS256)
-        jwt <- liftIO $ encode [jwk] (JwsEncoding HS256) (Claims $ BS.pack $ show $ u_id user)
-        case jwt of
-          Left st -> json $ Ae.object ["error" .= (show st :: String)]
-          Right (Jwt token) -> do
-            setCookie $ defaultSetCookie {setCookieName="token", setCookieValue=token, setCookiePath=Just "/"}
-            json $ Ae.object ["message" .= ("Login successful" :: String)]
-      Argon2VerifyMismatch -> json $ Ae.object ["error" .= ("Invalid credentials" :: String)]
-      st -> json $ Ae.object ["error" .= (show st :: String)]
+    setCookie $ defaultSetCookie {setCookieName="token", setCookieValue= BS.pack $ show $ u_id user, setCookiePath=Just "/"}
+    json $ Ae.object ["message" .= ("Login successful" :: String)]
+    -- case verifyEncoded (ST.pack $ password user) (BS.pack $ password reqBody) of
+    --   Argon2Ok -> do
+    --     jwkey <- liftIO jwk
+    --     jwt <- liftIO $ encode [jwkey] (JwsEncoding HS256) (Claims $ BS.pack $ show $ u_id user)
+    --     case jwt of
+    --       Left st -> json $ Ae.object ["error" .= (show st :: String)]
+    --       Right (Jwt token) -> do
+    --         setCookie $ defaultSetCookie {setCookieName="token", setCookieValue=token, setCookiePath=Just "/"}
+    --         json $ Ae.object ["message" .= ("Login successful" :: String)]
+    --   Argon2VerifyMismatch -> json $ Ae.object ["error" .= ("Invalid credentials" :: String)]
+    --   st -> json $ Ae.object ["error" .= (show st :: String)]
 

@@ -29,6 +29,8 @@ executable hasklink-exe
       Main.Connect
       Main.Routes.Auth
       Main.Routes.Links
+      Main.Utils.Auth
+      Main.Utils.Jwk
       Paths_hasklink
   autogen-modules:
       Paths_hasklink
