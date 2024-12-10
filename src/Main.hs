@@ -18,11 +18,13 @@ main = do
 
     get "/" $ do 
       json $ object ["hello" .= ("world" :: String)]
+
     post "/echo" $ do
       reqBody <- body
       case (decode reqBody :: Maybe Value) of
         Just item -> json item
         Nothing -> json $ object ["error" .= ("Something went wrong" :: String)]
+
     get "/rand" $ do
       conn <- liftIO getConnection
       [test] <- liftIO $ query_ conn "SELECT RAND()" :: ActionM [Only Float]
