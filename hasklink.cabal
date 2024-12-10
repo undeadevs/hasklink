@@ -27,6 +27,7 @@ executable hasklink-exe
   main-is: Main.hs
   other-modules:
       Main.Connect
+      Main.Routes.Links
       Paths_hasklink
   autogen-modules:
       Paths_hasklink
