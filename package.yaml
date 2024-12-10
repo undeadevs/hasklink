@@ -53,6 +53,7 @@ executables:
     - mysql-simple
     - argon2 >= 1.3.0.1
     - jose-jwt
+    - time
 
 tests:
   hasklink-test:

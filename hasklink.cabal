@@ -48,6 +48,7 @@ executable hasklink-exe
     , scotty
     , text
     , text-short
+    , time
   default-language: Haskell2010
 
 test-suite hasklink-test
