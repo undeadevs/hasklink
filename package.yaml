@@ -46,9 +46,13 @@ executables:
     dependencies:
     - scotty
     - text
+    - text-short
+    - bytestring
     - aeson
     - dotenv
     - mysql-simple
+    - argon2 >= 1.3.0.1
+    - jose-jwt
 
 tests:
   hasklink-test:

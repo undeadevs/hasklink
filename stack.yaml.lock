@@ -3,7 +3,14 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: argon2-1.3.0.1@sha256:8c71c8f28da42e6c85f1a4c4f196a03688b00a1bf18f18c9cf41015416c35649,4733
+    pantry-tree:
+      sha256: b9f150d728c938f61d4ab9c447dc063fe0e968ecc2f837be5c3594fddc5f0000
+      size: 1675
+  original:
+    hackage: argon2-1.3.0.1
 snapshots:
 - completed:
     sha256: 08bd13ce621b41a8f5e51456b38d5b46d7783ce114a50ab604d6bbab0d002146
