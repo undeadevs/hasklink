@@ -26,6 +26,7 @@ source-repository head
 executable hasklink-exe
   main-is: Main.hs
   other-modules:
+      Main.Connect
       Paths_hasklink
   autogen-modules:
       Paths_hasklink
