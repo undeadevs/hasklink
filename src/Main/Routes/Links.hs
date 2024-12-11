@@ -20,7 +20,7 @@ createLink :: ScottyM ()
 createLink = post "/links" $ do
     reqBody <- body
     conn <- liftIO getConnection
-    user_id <- getCookie "user_id"
+    user_id <- getCookie "token"
     case decode reqBody of
         Just (Object obj) -> do
             let parseFields :: Object -> Parser (Text, Text)
@@ -41,8 +41,8 @@ createLink = post "/links" $ do
 
 getLinks :: ScottyM ()
 getLinks = get "/links" $ do
+    maybeUserId <- getCookie "token" 
     conn <- liftIO getConnection
-    maybeUserId <- getCookie "user_id" 
     case maybeUserId of
         Just userId -> do
             result <- liftIO $ query conn
@@ -58,6 +58,7 @@ getLinks = get "/links" $ do
 getLinkDetail :: ScottyM ()
 getLinkDetail =
     get "/links/:slug" $ do
+        Just user_id <- getCookie "token" 
         slug <- captureParam "slug" :: ActionM Text
         conn <- liftIO getConnection
         result <- liftIO $ query conn
@@ -78,8 +79,8 @@ getLinkDetail =
 deleteLinks :: ScottyM ()
 deleteLinks =
     delete "/links/:slug" $ do
+        Just user_id <- getCookie "token" 
         slug <- captureParam "slug" :: ActionM String 
-        user_id <- getCookie "user_id" 
         conn <- liftIO getConnection         
         rows <- liftIO $ execute conn 
             "DELETE FROM links WHERE alias = ?" 
@@ -94,6 +95,7 @@ deleteLinks =
 updateLinks :: ScottyM ()
 updateLinks = 
     put "/links/:slug" $ do
+        Just user_id <- getCookie "token" 
         slug <- captureParam "slug" :: ActionM Text
         reqBody <- body 
         conn <- liftIO getConnection 
@@ -145,6 +147,7 @@ hitLink =
 extendExpire :: ScottyM ()
 extendExpire =
     put "/links/:slug/extend" $ do
+        Just user_id <- getCookie "token" 
         slug <- captureParam "slug"  :: ActionM Text
         reqBody <- body 
         conn <- liftIO getConnection 

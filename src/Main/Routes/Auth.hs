@@ -71,7 +71,8 @@ login = post "/auth/login" $ do
   then json $ Ae.object ["error" .= ("Invalid credentials" :: String)] 
   else do
     let user = head users
-    setCookie $ defaultSetCookie {setCookieName="token", setCookieValue= BS.pack $ show $ u_id user, setCookiePath=Just "/"}
+    let Just userid = u_id user
+    setCookie $ defaultSetCookie {setCookieName="token", setCookieValue= BS.pack $ show $ userid, setCookiePath=Just "/"}
     json $ Ae.object ["message" .= ("Login successful" :: String)]
     -- case verifyEncoded (ST.pack $ password user) (BS.pack $ password reqBody) of
     --   Argon2Ok -> do
