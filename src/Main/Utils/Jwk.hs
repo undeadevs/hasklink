@@ -1,12 +1,10 @@
 module Main.Utils.Jwk (jwk) where
 
 import System.Environment (getEnv)
-import Jose.Jwk (generateSymmetricKey, Jwk, KeyUse (Sig))
-import qualified Data.Text as T (pack)
-import Jose.Jwt (KeyId(KeyId))
-import Jose.Jwa (Alg(Signed), JwsAlg (HS256))
+import Jose.Jwk (Jwk (SymmetricJwk))
+import qualified Data.ByteString.Char8 as BS (pack)
 
 jwk :: IO Jwk
 jwk = do
   jwtSecret <- getEnv "JWT_SECRET"
-  generateSymmetricKey 2048 (KeyId $ T.pack jwtSecret ) Sig (Just $ Signed HS256)
+  return $ SymmetricJwk (BS.pack jwtSecret) Nothing Nothing Nothing

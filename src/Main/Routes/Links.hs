@@ -3,34 +3,32 @@
 
 module Main.Routes.Links (getLinks, createLink, getLinkDetail, deleteLinks, updateLinks, hitLink, extendExpire) where
 
-import Data.Aeson (decode, object, (.=), (.:), (.:?),Object, Value(..), withObject)
+import Data.Aeson (decode, object, (.=), (.:), (.:?),Object, Value(..))
 import Web.Scotty
-import Data.Aeson.Types (parseEither, Parser, Object)
+import Data.Aeson.Types (parseEither, Parser)
 import Main.Connect
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Database.MySQL.Simple
-import Data.Text.Lazy (Text,fromStrict)
-import Data.Maybe (fromMaybe)
-import Web.Scotty.Cookie
-import Data.Time.Clock (UTCTime, addUTCTime,getCurrentTime )
-
+import Data.Text.Lazy (Text)
+import Data.Time.Clock (UTCTime,getCurrentTime )
+import Main.Utils.Auth (getUserIdFromCookie)
 
 
 createLink :: ScottyM ()
 createLink = post "/links" $ do
     reqBody <- body
     conn <- liftIO getConnection
-    user_id <- getCookie "token"
+    user_id <- getUserIdFromCookie
     case decode reqBody of
         Just (Object obj) -> do
             let parseFields :: Object -> Parser (Text, Text)
-                parseFields obj = do
-                    alias <- obj .: "alias"
-                    originalUrl <- obj .: "original_url"
+                parseFields _obj = do
+                    alias <- _obj .: "alias"
+                    originalUrl <- _obj .: "original_url"
                     return (alias, originalUrl)
             case parseEither parseFields obj of
                 Right (alias, originalUrl) -> do
-                    liftIO $ execute conn
+                    _ <- liftIO $ execute conn
                         "INSERT INTO links (owner_id, alias, original_url) VALUES (?, ?, ?)"
                         (user_id, alias, originalUrl)
                     json $ object ["status" .= ("success" :: Text), "alias" .= alias, "original_url" .= originalUrl]
@@ -41,9 +39,11 @@ createLink = post "/links" $ do
 
 getLinks :: ScottyM ()
 getLinks = get "/links" $ do
-    maybeUserId <- getCookie "token" 
+    maybeUserId <- getUserIdFromCookie
     conn <- liftIO getConnection
     case maybeUserId of
+        Nothing -> do
+            json $ object ["error" .= ("Unauthenticated" :: Text)]
         Just userId -> do
             result <- liftIO $ query conn
                 "SELECT alias, original_url, click_count FROM links WHERE owner_id = ?"
@@ -52,69 +52,73 @@ getLinks = get "/links" $ do
                           object ["alias" .= alias, 
                                   "original_url" .= originalUrl, 
                                   "click_count" .= clickCount]) result
-        Nothing -> do
-            json $ object ["error" .= ("log in first" :: Text)]
 
 getLinkDetail :: ScottyM ()
 getLinkDetail =
     get "/links/:slug" $ do
-        Just user_id <- getCookie "token" 
-        slug <- captureParam "slug" :: ActionM Text
-        conn <- liftIO getConnection
-        result <- liftIO $ query conn
-            "SELECT alias, original_url, click_count, expires_at FROM links WHERE alias = ?"
-            (Only slug) :: ActionM [(Text, Text, Int,  Maybe UTCTime)]
-        case result of
-            [(alias, originalUrl, clickCount, expiresAt)] -> do
+        maybeUserId <- getUserIdFromCookie
+        case maybeUserId of
+          Nothing -> json $ object ["error" .= ("Unauthenticated" :: String)]
+          Just user_id -> do
+            slug <- captureParam "slug" :: ActionM Text
+            conn <- liftIO getConnection
+            result <- liftIO $ query conn
+              "SELECT alias, original_url, click_count, expires_at FROM links WHERE owner_id ? AND alias = ?"
+              (user_id, slug) :: ActionM [(Text, Text, Int,  Maybe UTCTime)]
+            case result of
+              [(alias, originalUrl, clickCount, expiresAt)] -> do
                 json $ object
                     [ "alias" .= alias
                     , "original_url" .= originalUrl
                     , "click_count" .= clickCount
                     , "expires_at" .= expiresAt
                     ]
-            _ -> do
+              _ -> do
                 json $ object ["error" .= ("Link not found" :: Text)]
 
 
 deleteLinks :: ScottyM ()
 deleteLinks =
     delete "/links/:slug" $ do
-        Just user_id <- getCookie "token" 
-        slug <- captureParam "slug" :: ActionM String 
-        conn <- liftIO getConnection         
-        rows <- liftIO $ execute conn 
-            "DELETE FROM links WHERE alias = ?" 
-            (Only slug)  
-        if rows > 0
-            then do
-                json $ object ["message" .= ("Link deleted successfully" :: String)]
-            else do
-                json $ object ["error" .= ("Link not found" :: String)]
+        maybeUserId <- getUserIdFromCookie
+        case maybeUserId of
+          Nothing -> json $ object ["error" .= ("Unauthenticated" :: String)]
+          Just user_id -> do
+            slug <- captureParam "slug" :: ActionM String 
+            conn <- liftIO getConnection         
+            rows <- liftIO $ execute conn 
+              "DELETE FROM links WHERE owner_id = ? AND alias = ?" 
+              (user_id, slug)  
+            if rows > 0 then json $ object ["message" .= ("Link deleted successfully" :: String)]
+            else json $ object ["error" .= ("Link not found" :: String)]
    
 
 updateLinks :: ScottyM ()
 updateLinks = 
     put "/links/:slug" $ do
-        Just user_id <- getCookie "token" 
-        slug <- captureParam "slug" :: ActionM Text
-        reqBody <- body 
-        conn <- liftIO getConnection 
-        case decode reqBody of
-            Just (Object obj) -> do
+        maybeUserId <- getUserIdFromCookie
+        case maybeUserId of
+          Nothing -> json $ object ["error" .= ("Unauthenticated" :: String)]
+          Just user_id -> do
+            slug <- captureParam "slug" :: ActionM Text
+            reqBody <- body 
+            conn <- liftIO getConnection 
+            case decode reqBody of
+              Just (Object obj) -> do
                 let parseFields :: Object -> Parser (Text, Text)
-                    parseFields obj = do
-                        alias <- obj .: "alias"
-                        originalUrl <- obj .: "original_url"
+                    parseFields _obj = do
+                        alias <- _obj .: "alias"
+                        originalUrl <- _obj .: "original_url"
                         return (alias, originalUrl)
                 case parseEither parseFields obj of
                     Right (alias, originalUrl) -> do
-                        liftIO $ execute conn
-                            "UPDATE links SET alias = ?, original_url = ? WHERE alias = ?"
-                            (alias, originalUrl, slug)
+                        _ <- liftIO $ execute conn
+                            "UPDATE links SET alias = ?, original_url = ? WHERE owner_id = ? AND alias = ?"
+                            (alias, originalUrl, user_id, slug)
                         json $ object ["status" .= ("success" :: Text), "alias" .= alias, "original_url" .= originalUrl]
                     Left err -> 
                         json $ object ["error" .= ("Invalid request body" :: Text), "details" .= err]
-            _ -> 
+              _ -> 
                 json $ object ["error" .= ("Internal server error" :: Text)]
 
 
@@ -147,25 +151,28 @@ hitLink =
 extendExpire :: ScottyM ()
 extendExpire =
     put "/links/:slug/extend" $ do
-        Just user_id <- getCookie "token" 
-        slug <- captureParam "slug"  :: ActionM Text
-        reqBody <- body 
-        conn <- liftIO getConnection 
-        case decode reqBody of
-            Just (Object obj) -> do
+        maybeUserId <- getUserIdFromCookie
+        case maybeUserId of
+          Nothing -> json $ object ["error" .= ("Unauthenticated" :: String)]
+          Just user_id -> do
+            slug <- captureParam "slug"  :: ActionM Text
+            reqBody <- body 
+            conn <- liftIO getConnection 
+            case decode reqBody of
+              Just (Object obj) -> do
                 case parseEither (.:? "extend_time") obj of
                     Right (Just extendTime) -> case extendTime of
                         Number hours -> do
                             let extendHours = truncate hours :: Int -- Convert to Int safely
-                            liftIO $ execute conn
-                                "UPDATE links SET expires_at = DATE_ADD(expires_at, INTERVAL ? HOUR) WHERE alias = ?"
-                                (extendHours, slug)
+                            _ <- liftIO $ execute conn
+                                "UPDATE links SET expires_at = DATE_ADD(expires_at, INTERVAL ? HOUR) WHERE owner_id = ? AND alias = ?"
+                                (extendHours, user_id, slug)
                             json $ object ["status" .= ("success" :: Text), "extended_by_hours" .= extendHours]
                         _ -> json $ object ["error" .= ("'extend_time' must be a number" :: Text)]
                     Right Nothing ->
                         json $ object ["error" .= ("Invalid request body" :: Text)]
-                    Left err ->
+                    Left _ ->
                         json $ object ["error" .= ("Internal server error'" :: Text)]
-            _ -> 
+              _ -> 
                 json $ object ["error" .= ("Internal server error" :: Text)]
 
