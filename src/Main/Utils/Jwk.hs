@@ -1,8 +1,10 @@
-module Main.Utils.Jwk (jwk) where
+module Main.Utils.Jwk
+  ( jwk
+  ) where
 
-import System.Environment (getEnv)
-import Jose.Jwk (Jwk (SymmetricJwk))
 import qualified Data.ByteString.Char8 as BS (pack)
+import Jose.Jwk (Jwk(SymmetricJwk))
+import System.Environment (getEnv)
 
 jwk :: IO Jwk
 jwk = do

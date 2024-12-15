@@ -1,11 +1,18 @@
-module Main.Connect (getConnection) where
+module Main.Connect
+  ( getConnection
+  ) where
 
-import System.Environment (getEnv)
 import Database.MySQL.Simple
+import System.Environment (getEnv)
 
 getConnection :: IO Connection
-getConnection = do 
+getConnection = do
   mysqlUser <- getEnv "MYSQL_USER"
   mysqlPassword <- getEnv "MYSQL_PASSWORD"
   mysqlDatabase <- getEnv "MYSQL_DATABASE"
-  connect defaultConnectInfo {connectUser = mysqlUser, connectPassword = mysqlPassword, connectDatabase = mysqlDatabase}
+  connect
+    defaultConnectInfo
+      { connectUser = mysqlUser
+      , connectPassword = mysqlPassword
+      , connectDatabase = mysqlDatabase
+      }

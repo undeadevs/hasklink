@@ -1,20 +1,28 @@
-{-# language ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Main (main) where
+module Main
+  ( main
+  ) where
 
+import Configuration.Dotenv (defaultConfig, loadFile)
+import Main.Routes.Auth (login, register)
+import Main.Routes.Links
+  ( createLink
+  , deleteLinks
+  , extendExpire
+  , getLinkDetail
+  , getLinks
+  , hitLink
+  , updateLinks
+  )
 import Web.Scotty
-import Configuration.Dotenv (loadFile, defaultConfig)
-import Main.Routes.Auth (register, login)
-import Main.Routes.Links (getLinks, createLink, getLinkDetail, deleteLinks, updateLinks, hitLink,extendExpire)
 
 main :: IO ()
 main = do
   loadFile defaultConfig
-
   scotty 7001 $ do
     register
     login
-
     getLinks
     createLink
     hitLink
